@@ -21,13 +21,14 @@ createMainWindow gameStateRef = do
   win <- windowNew
 
   Gtk.set win [windowDefaultWidth := winW, windowDefaultHeight := winH]
+
   onSizeRequest win $ return (Requisition winW winH)
   onDestroy win mainQuit
   drawArea <- drawingAreaNew
   
   drawArea `onExpose` \_dirtyRect -> do
     gameState <- readIORef gameStateRef
-
+    windowSetTitle win (gameScore gameState)
     (canvasX,canvasY) <- widgetGetSize drawArea
     let dia = gameDiagram gameState
         spec = dims $ V2 (fromIntegral canvasX) (fromIntegral canvasY)

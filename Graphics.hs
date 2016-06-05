@@ -52,6 +52,7 @@ possibleMovesDiagram t b = foldrWithKey drawArrows mempty (possibleMoves t b)
                                            <> uncurry arrowBetween (last arrows)
             where arrows = zip (from : jumps) jumps
                   segment (from, to) = arrowBetween' (with & arrowHead .~ noHead) from to
+                                     <> circle 0.075 # fc black # moveTo to
           _                                -> mempty
 
 gameDiagram :: GameState -> Diagram Cairo

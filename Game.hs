@@ -7,11 +7,7 @@ import qualified Data.Map.Strict as M
 
 import Data.IORef
 import Data.Maybe
-import Data.List (find)
-import Control.Lens
 import Control.Monad
-import Data.Foldable (minimumBy, maximumBy)
-import Data.Ord (comparing)
 import Linear.V2
 
 import Types
@@ -33,16 +29,16 @@ initialGameState = GameState (M.fromList $ whites ++ blacks) Nothing Whites
 
 updateGameState :: IORef GameState -> V2 Int -> IO ()
 updateGameState gameStateRef p = do
-  GameState board sf turn <- readIORef gameStateRef
-  let pm = possibleMoves turn board
+  GameState brd sf trn <- readIORef gameStateRef
+  let pm = possibleMoves trn brd
       save b s t = writeIORef gameStateRef $ GameState b s t
 
   case sf >>= lookup pm >>= findMove p of
-    Just m -> save (movePawn board (fromJust sf) m) Nothing (nextTurn turn)
-    _      -> save board (Just p) turn
+    Just m -> save (movePawn brd (fromJust sf) m) Nothing (nextTurn trn)
+    _      -> save brd (Just p) trn
 
 possibleMoves :: Turn -> Board -> PossibleMoves
-possibleMoves t b = prioritize $ M.mapWithKey allFieldMoves $ turnFilter t b
+possibleMoves trn brd = prioritize $ M.mapWithKey allFieldMoves $ turnFilter trn brd
   where allFieldMoves p t = fieldMoves p t ++ fieldCaptures p t
 
         prioritize moves = M.filter (not . null) 
@@ -53,11 +49,11 @@ possibleMoves t b = prioritize $ M.mapWithKey allFieldMoves $ turnFilter t b
                 priority (Capture []) = -1
                 priority (Capture ps) = 1 + length ps
 
-        allowedMove a@(V2 ax ay) = ax `elem` [0..7] && ay `elem` [0..7] && isNothing (M.lookup a b)
+        allowedMove a@(V2 ax ay) = ax `elem` [0..7] && ay `elem` [0..7] && isNothing (M.lookup a brd)
         
         allDirections = [V2 1 1, V2 (-1) 1, V2 (-1) (-1), V2 1 (-1)]
 
-        fieldMoves p t = map Ordinary $ filter allowedMove $ uncurry (directional p b takeWhile) $ case t of
+        fieldMoves p t = map Ordinary $ filter allowedMove $ uncurry (directional p brd takeWhile) $ case t of
           White      -> ([V2 1 1, V2 (-1) 1]      , 1)
           WhiteQueen -> (allDirections            , 6)
           Black      -> ([V2 (-1) (-1), V2 1 (-1)], 1)
@@ -69,10 +65,10 @@ possibleMoves t b = prioritize $ M.mapWithKey allFieldMoves $ turnFilter t b
           Black      -> captures p [White, WhiteQueen] 1
           BlackQueen -> captures p [White, WhiteQueen] 6
 
-        directional p0 b0 f dirs range = concatMap d dirs
-          where d dir = f (`M.notMember` b0) $ (p0+) . (dir*) . pure <$> [1..range]
+        directional p0 b0 f dirs step = concatMap d dirs
+          where d dir = f (`M.notMember` b0) $ (p0+) . (dir*) . pure <$> [1..step]
 
-        captures p en off = rec' b p []
+        captures p en off = rec' brd p []
           where f b0 p0 = filter allowedMove
                         $ concatMap (\a -> directional a b0 takeWhile [vdir p0 a] off)
                         $ filter (isJust . mfilter (`elem` en) . lookup b0) 
@@ -87,8 +83,8 @@ range (V2 fx fy) (V2 tx ty) = zipWith V2 (r fx tx) (r fy ty)
   where r a b = [a, a + signum (b - a) .. b]
 
 movePawn :: Board -> V2 Int -> Move -> Board
-movePawn board from move = M.insert to insert $ foldr M.delete board seg
-  where to = case move of
+movePawn brd from move = M.insert to insert $ foldr M.delete brd seg
+  where to@(V2 _ toY) = case move of
           Ordinary x -> x
           Capture xs -> last xs
         
@@ -96,9 +92,9 @@ movePawn board from move = M.insert to insert $ foldr M.delete board seg
           Ordinary x -> range from x
           Capture xs -> concat $ zipWith range (from : xs) xs
 
-        insert = case board M.! from of
-          White -> if to ^. _y == 7 then WhiteQueen else White
-          Black -> if to ^. _y == 0 then BlackQueen else Black
+        insert = case brd M.! from of
+          White -> if toY == 7 then WhiteQueen else White
+          Black -> if toY == 0 then BlackQueen else Black
           a     -> a
 
 gameScore :: GameState -> String

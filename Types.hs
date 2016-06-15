@@ -5,7 +5,6 @@ module Types where
 
 import Linear.V2
 import Data.Map.Strict as M
-import Control.Lens
 
 data FieldType = White | Black | WhiteQueen | BlackQueen deriving (Show, Read, Eq)
 
@@ -28,11 +27,10 @@ type Board = Map (V2 Int) FieldType
 getScore :: Turn -> Board -> Int
 getScore t b = (12-) $ size $ turnFilter (nextTurn t) b
 
-data GameState = GameState { _board :: Map (V2 Int) FieldType
-                           , _selectedField :: Maybe (V2 Int)
-                           , _turn :: Turn
+data GameState = GameState { board :: Map (V2 Int) FieldType
+                           , selectedField :: Maybe (V2 Int)
+                           , turn :: Turn
                            } deriving (Show, Read, Eq)
-makeLenses ''GameState
 
 data Move = Ordinary (V2 Int) | Capture [V2 Int] deriving (Show, Read, Eq)
 

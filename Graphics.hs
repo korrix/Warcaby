@@ -17,6 +17,7 @@ import Game
 v2p :: (Integral a, Num n) => V2 a -> P2 n
 v2p = p2 . unr2 . fmap fromIntegral
 
+moveTo' :: (Integral a, Num (N t), HasOrigin t, V t ~ V2) => V2 a -> t -> t
 moveTo' = moveTo . v2p
 
 boardBackground :: Diagram Cairo
@@ -43,17 +44,17 @@ boardDiagram = foldrWithKey' (\k v acc -> pawn k v <> acc) mempty
 possibleMovesDiagram :: Turn -> Board -> Diagram Cairo
 possibleMovesDiagram t b = foldrWithKey drawArrows mempty (possibleMoves t b)
   where drawArrows _    [] acc = acc
-        drawArrows from to acc = mconcat (map (drawArrow from) to) <> acc
+        drawArrows src dst acc = mconcat (map (drawArrow src) dst) <> acc
 
         drawArrow :: V2 Int -> Move -> Diagram Cairo
-        drawArrow (v2p -> from) = \case
-          Ordinary (v2p -> to)             -> arrowBetween from to
+        drawArrow (v2p -> src) = \case
+          Ordinary (v2p -> dst)            -> arrowBetween src dst
           Capture (map v2p -> jumps@(_:_)) -> mconcat (map segment $ init arrows) 
                                            <> uncurry arrowBetween (last arrows)
-            where arrows = zip (from : jumps) jumps
-                  segment (from, to) = arrowBetween' (with & arrowHead .~ noHead) from to
-                                     <> circle 0.075 # fc black # moveTo to
-          _                                -> mempty
+            where arrows = zip (src : jumps) jumps
+                  segment (s0, d0) = arrowBetween' (with & arrowHead .~ noHead) s0 d0
+                                     <> circle 0.075 # fc black # moveTo d0
+          _                                 -> mempty
 
 gameDiagram :: GameState -> Diagram Cairo
 gameDiagram (GameState b s t) = boardDiagram b

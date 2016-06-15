@@ -22,11 +22,11 @@ createMainWindow gameStateRef = do
 
   Gtk.set win [windowDefaultWidth := winW, windowDefaultHeight := winH]
 
-  onSizeRequest win $ return (Requisition winW winH)
-  onDestroy win mainQuit
+  _ <- onSizeRequest win $ return (Requisition winW winH)
+  _ <- onDestroy win mainQuit
   drawArea <- drawingAreaNew
   
-  drawArea `onExpose` \_dirtyRect -> do
+  _ <- drawArea `onExpose` \_dirtyRect -> do
     gameState <- readIORef gameStateRef
     windowSetTitle win (gameScore gameState)
     (canvasX,canvasY) <- widgetGetSize drawArea
@@ -37,7 +37,7 @@ createMainWindow gameStateRef = do
     renderToGtk drawWindow scaledDia
     return True
 
-  drawArea `on` buttonPressEvent $ tryEvent $ do
+  _ <- drawArea `on` buttonPressEvent $ tryEvent $ do
     (x, y) <- eventCoordinates
     let mousePos = floor <$> V2 (x / winW) ((winH - y) / winH) * 8
     liftIO $ do
@@ -49,7 +49,7 @@ createMainWindow gameStateRef = do
 
 main :: IO ()
 main = do
-  initGUI
+  _ <- initGUI
   gameState <- newIORef initialGameState
   win <- createMainWindow gameState
   widgetShowAll win
